@@ -137,26 +137,34 @@ simulation, mixed-evidence probes, and re-run).
 
 ## How to bring up the app
 
-The cockpit runs as a local web service powered by **TanStack Start** and **Bun** (or Node.js).
+`./start.sh` (or `./start.ps1`) launches **both** processes: the FastAPI + DuckDB RCA engine and
+the TanStack Start cockpit. There is no need to start them separately.
 
-**Prerequisites:** [Bun](https://bun.sh) (recommended) or [Node.js](https://nodejs.org) 18+.
+**Prerequisites:** [Node.js](https://nodejs.org) 18+ (npm comes with it). [Bun](https://bun.sh) is
+optional but used automatically if present (`bun.lock` is checked in) — it installs faster.
+Python 3.9+ is required for the analytical API.
 
-**Quick start:**
+**Quick start (recommended):**
+
+| Platform | Start | Stop |
+|---|---|---|
+| macOS / Linux | `./start.sh` | `./stop.sh` |
+| Windows (PowerShell) | `./start.ps1` | `./stop.ps1` |
 
 ```sh
-# Clone the repository
-git clone [https://github.com/mayukhg/incident-insight.git](https://github.com/mayukhg/incident-insight.git)
+git clone https://github.com/mayukhg/incident-insight.git
 cd incident-insight
-
-# Install dependencies
-bun install   # or: npm install
-
-# Start development server
-bun run dev   # or: npm run dev
-
+./start.sh          # installs dependencies on first run, then starts the API and cockpit
 ```
 
-Then open **http://127.0.0.1:3000** (or the port shown in your terminal).
+Then open **http://127.0.0.1:8080**. On first run the script also creates `backend/.venv`,
+installs Python packages, and unpacks the synthetic DuckDB ledger from
+`backend/data/synthetic_ledger.duckdb.gz`. It writes PID files (`.incident-insight-api.pid`,
+`.incident-insight-web.pid`) and logs (`.incident-insight-api.log`,
+`.incident-insight-web.log`) so `./stop.sh` can find and stop the right processes, and detects
+if the app is already running so it won't start a second copy.
+
+Override bind address or ports if needed: `./start.sh --host 127.0.0.1 --port 8080 --api-port 8000`.
 
 **Using the cockpit:** after the UI and API are up, follow
 [`docs/HOW_TO_USE.md`](docs/HOW_TO_USE.md) for the click-by-click workflows (selecting a

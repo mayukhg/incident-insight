@@ -31,6 +31,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Dev server process files written by start.sh / start.ps1
+.incident-insight*.pid
+# DuckDB ledger — keep the compressed seed in git; ignore the unpacked file
+
 # DuckDB ledger — keep the compressed seed in git; ignore the unpacked file
 backend/data/*
 !backend/data/synthetic_ledger.duckdb.gz
