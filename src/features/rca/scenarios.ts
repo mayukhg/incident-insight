@@ -110,6 +110,12 @@ const deployRows: CohortRow[] = [
   { slice: "Provider incident", baselineVolume: "—", baselineAuth: 0, incidentVolume: "0 events", incidentAuth: 0, delta: 0, pValue: "n/a" },
 ];
 
+function cohortAt(rows: CohortRow[], index: number): CohortRow {
+  const row = rows[index];
+  if (!row) throw new Error(`Missing cohort row at index ${index}`);
+  return row;
+}
+
 const scenarioA: Scenario = {
   id: "adyen-3ds",
   shortName: "Scenario A · Adyen UK 3DS",
@@ -149,9 +155,9 @@ const scenarioB: Scenario = {
   window: "18 Sep · 09:20–10:20 UTC",
   chart: chartA.map((p, index) => ({ ...p, baseline: p.baseline + 0.6, incident: p.incident + 2.0, latency: p.latency + index * 36 })),
   nodes: [
-    node("baseline", "01", "Baseline & window isolation", "3.8pp auth shift confirmed", "14ms", "3.7M rows", "success", baselineSql, [{ ...baselineRows[0], baselineVolume: "3.71M", baselineAuth: 89.0, incidentVolume: "544K", incidentAuth: 85.2, delta: -3.8 }], "Anomaly window confirmed"),
-    node("gateway", "02", "Gateway decomposition", "Checkout.com latency leads decline", "51ms", "3.7M rows", "anomaly", gatewaySql, [{ ...gatewayRows[0], slice: "Checkout.com", baselineAuth: 89.2, incidentAuth: 74.8, delta: -14.4 }, { ...gatewayRows[1] }, { ...gatewayRows[2], slice: "Adyen" }], "Checkout.com diverges at 09:25"),
-    node("slice", "03", "Scheme & response slicing", "Visa soft declines isolated", "92ms", "1.2M rows", "anomaly", sliceSql.replace("bin_country, card_type", "card_brand, card_type"), [{ ...sliceRows[0], slice: "Visa · Credit · do_not_honor", baselineAuth: 88.7, incidentAuth: 66.2, delta: -22.5 }, { ...sliceRows[1], slice: "Mastercard · Credit", delta: -0.4, incidentAuth: 88.0 }], "Visa latency and soft declines correlate"),
+    node("baseline", "01", "Baseline & window isolation", "3.8pp auth shift confirmed", "14ms", "3.7M rows", "success", baselineSql, [{ ...cohortAt(baselineRows, 0), baselineVolume: "3.71M", baselineAuth: 89.0, incidentVolume: "544K", incidentAuth: 85.2, delta: -3.8 }], "Anomaly window confirmed"),
+    node("gateway", "02", "Gateway decomposition", "Checkout.com latency leads decline", "51ms", "3.7M rows", "anomaly", gatewaySql, [{ ...cohortAt(gatewayRows, 0), slice: "Checkout.com", baselineAuth: 89.2, incidentAuth: 74.8, delta: -14.4 }, { ...cohortAt(gatewayRows, 1) }, { ...cohortAt(gatewayRows, 2), slice: "Adyen" }], "Checkout.com diverges at 09:25"),
+    node("slice", "03", "Scheme & response slicing", "Visa soft declines isolated", "92ms", "1.2M rows", "anomaly", sliceSql.replace("bin_country, card_type", "card_brand, card_type"), [{ ...cohortAt(sliceRows, 0), slice: "Visa · Credit · do_not_honor", baselineAuth: 88.7, incidentAuth: 66.2, delta: -22.5 }, { ...cohortAt(sliceRows, 1), slice: "Mastercard · Credit", delta: -0.4, incidentAuth: 88.0 }], "Visa latency and soft declines correlate"),
     node("deploy", "04", "Provider telemetry correlation", "Provider degradation matched", "126ms", "184K rows", "success", deploySql.replace("system_deployments", "gateway_incidents"), deployRows, "PSP incident starts within two minutes"),
   ],
   rootCause: "Checkout.com Visa processing latency",
@@ -182,10 +188,10 @@ const scenarioC: Scenario = {
   window: "02 Sep · 08:00–10:00 UTC",
   chart: chartA.map((p, index) => ({ ...p, baseline: p.baseline - 0.5, incident: 87.4 - index * 0.38, latency: 340 + index * 4 })),
   nodes: [
-    node("baseline", "01", "Baseline & window isolation", "Broad 4.1pp shift detected", "13ms", "3.9M rows", "success", baselineSql, [{ ...baselineRows[0], baselineVolume: "3.91M", baselineAuth: 87.9, incidentVolume: "552K", incidentAuth: 83.8, delta: -4.1, pValue: "0.058" }], "Broad shift near significance threshold"),
+    node("baseline", "01", "Baseline & window isolation", "Broad 4.1pp shift detected", "13ms", "3.9M rows", "success", baselineSql, [{ ...cohortAt(baselineRows, 0), baselineVolume: "3.91M", baselineAuth: 87.9, incidentVolume: "552K", incidentAuth: 83.8, delta: -4.1, pValue: "0.058" }], "Broad shift near significance threshold"),
     node("gateway", "02", "Gateway decomposition", "Variance uniform across all PSPs", "46ms", "3.9M rows", "inconclusive", gatewaySql, mixedRows, "No gateway-specific divergence"),
     node("slice", "03", "Issuer & cohort slicing", "No cohort clears significance gate", "89ms", "3.9M rows", "inconclusive", sliceSql, mixedRows.map((r) => ({ ...r, slice: `${r.slice} · NSF`, delta: r.delta + 0.1 })), "Insufficient_funds distributed uniformly"),
-    node("deploy", "04", "Telemetry cross-correlation", "No matching deploy or PSP incident", "121ms", "552K rows", "inconclusive", deploySql, [{ ...deployRows[2], slice: "Correlated deploys", incidentVolume: "0 events" }, { ...deployRows[2], slice: "Provider incidents", incidentVolume: "0 events" }], "No causal event detected"),
+    node("deploy", "04", "Telemetry cross-correlation", "No matching deploy or PSP incident", "121ms", "552K rows", "inconclusive", deploySql, [{ ...cohortAt(deployRows, 2), slice: "Correlated deploys", incidentVolume: "0 events" }, { ...cohortAt(deployRows, 2), slice: "Provider incidents", incidentVolume: "0 events" }], "No causal event detected"),
   ],
   rootCause: "No isolated causal factor",
   summary: "The observed decline increase is distributed across gateways, issuers, and card cohorts. No deployment or provider event aligns with the anomaly window.",

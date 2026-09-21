@@ -329,7 +329,7 @@ function Remediation({ scenario, simulated, setSimulated, openExport }: { scenar
   );
 }
 
-function MixedEvidence({ scenario, onProbe: (sql: string, title: string) => void }) {
+function MixedEvidence({ scenario, onProbe }: { scenario: Scenario; onProbe: (sql: string, title: string) => void }) {
   return (
     <section className="p-4">
       <div className="rounded-md border border-warning/30 bg-warning/8 p-3">
