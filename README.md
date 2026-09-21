@@ -96,7 +96,13 @@ Three engineering commitments carry the vision into the system design in
   2. *Scenario B (External Scheme Degradation):* Checkout.com Visa scheme latency ramp and soft decline spike.
   3. *Scenario C (Mixed Evidence):* Broad, uniform post-holiday NSF drop demonstrating ambiguity handling and counter-evidence logs.
 
+**Click-level operator guide:** [`docs/HOW_TO_USE.md`](docs/HOW_TO_USE.md) walks every
+implemented cockpit workflow (scenario selection, hypothesis tree, proof pane, failover
+simulation, mixed-evidence probes, and re-run).
+
 **Handoff Documentation & Contracts** (`docs/`):
+- `docs/HOW_TO_USE.md`: Operator walkthrough of the tri-pane workbench — exact clicks, mermaid
+  flows, and which pane answers which question.
 - `docs/FRONTEND_INTEGRATION_GUIDE.md`: Comprehensive map of UI components, reactive state flows,
   TanStack integration patterns, fixture replacement points, and regression checklists.
 - `docs/BACKEND_IMPLEMENTATION.md`: Full FastAPI + DuckDB architecture, canonical relational
@@ -151,6 +157,10 @@ bun run dev   # or: npm run dev
 ```
 
 Then open **http://127.0.0.1:3000** (or the port shown in your terminal).
+
+**Using the cockpit:** after the UI and API are up, follow
+[`docs/HOW_TO_USE.md`](docs/HOW_TO_USE.md) for the click-by-click workflows (selecting a
+scenario, reading proof, simulating failover, mixed-evidence probes).
 
 **Backend implementation & Cursor handoff:**
 
