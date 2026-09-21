@@ -31,7 +31,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# DuckDB ledger
-backend/data/
+# DuckDB ledger — keep the compressed seed in git; ignore the unpacked file
+backend/data/*
+!backend/data/synthetic_ledger.duckdb.gz
 backend/.venv/
 .venv/
