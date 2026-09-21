@@ -9,6 +9,17 @@ param(
 $ErrorActionPreference = "Stop"
 Set-Location -Path $PSScriptRoot
 
+foreach ($envFile in @((Join-Path $PSScriptRoot "backend\.env"), (Join-Path $PSScriptRoot ".env"))) {
+    if (Test-Path $envFile) {
+        Get-Content $envFile | ForEach-Object {
+            $line = $_.Trim()
+            if (-not $line -or $line.StartsWith("#") -or $line -notmatch "=") { return }
+            $pair = $line.Split("=", 2)
+            [System.Environment]::SetEnvironmentVariable($pair[0].Trim(), $pair[1].Trim().Trim('"').Trim("'"), "Process")
+        }
+    }
+}
+
 $ApiPidFile = Join-Path $PSScriptRoot ".incident-insight-api.pid"
 $WebPidFile = Join-Path $PSScriptRoot ".incident-insight-web.pid"
 $ApiLogFile = Join-Path $PSScriptRoot ".incident-insight-api.log"

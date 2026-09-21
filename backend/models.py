@@ -96,6 +96,8 @@ class InvestigationResponse(BaseModel):
     steps: list[InvestigationStep]
     root_cause_analysis: RootCauseAnalysis
     verification: VerificationState
+    planner_source: str = "template"
+    replan_count: int = 0
 
 
 class TelemetryBucket(BaseModel):
@@ -158,6 +160,23 @@ class RunAccepted(BaseModel):
 class ProbeRequest(BaseModel):
     scenario_id: str
     probe_id: str
+
+
+class NaturalLanguageRequest(BaseModel):
+    scenario_id: str
+    prompt: str = Field(min_length=8, max_length=2000)
+
+
+class ApproveRequest(BaseModel):
+    scenario_id: str
+    proposal_id: str
+    evidence_hash: str
+
+
+class ApproveResponse(BaseModel):
+    approved: bool
+    evidence_hash: str
+    proposal_id: str
 
 
 class ProbeResponse(BaseModel):

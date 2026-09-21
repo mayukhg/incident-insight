@@ -100,9 +100,27 @@ Three engineering commitments carry the vision into the system design in
 implemented cockpit workflow (scenario selection, hypothesis tree, proof pane, failover
 simulation, mixed-evidence probes, and re-run).
 
+### LLM usage (Gemini as DAG compiler only)
+
+Gemini is **not** the root-cause engine. It is used in one place: translating an operator’s
+natural-language incident description into a schema-validated hypothesis DAG. SQL, p-values,
+isolation vs peers, policy JSON, simulation, and export stay deterministic. Ordinary scenario
+A/B/C loads and **Re-run investigation** never call the model.
+
+| Question | Short answer |
+|---|---|
+| User problem | War-room English (“Adyen UK debit auth dropped after 3DS deploy”) must become an ordered, bounded test plan. |
+| Why an LLM at all | That first mapping is a language job. Everything after it is ledger math. |
+| Where it runs | **Compile DAG** in the workbench header, or `POST /api/investigate/nl`. |
+| Guardrails | Frozen taxonomy, catalog filters, no free SQL, invalid DAG dropped (template fallback), max two MIXED replans, 80% confidence + evidence-hash approve, key in gitignored `backend/.env`. |
+
+Full diagrams, the allowed-vs-forbidden table, and the sequence of compile → validate → execute → approve are in [`docs/llm_usage.md`](docs/llm_usage.md).
+
 **Handoff Documentation & Contracts** (`docs/`):
 - `docs/HOW_TO_USE.md`: Operator walkthrough of the tri-pane workbench — exact clicks, mermaid
   flows, and which pane answers which question.
+- `docs/llm_usage.md`: Why Gemini is in the loop, the single usage scenario, implementation map,
+  and guardrails (with workflow diagrams).
 - `docs/FRONTEND_INTEGRATION_GUIDE.md`: Comprehensive map of UI components, reactive state flows,
   TanStack integration patterns, fixture replacement points, and regression checklists.
 - `docs/BACKEND_IMPLEMENTATION.md`: Full FastAPI + DuckDB architecture, canonical relational
@@ -168,7 +186,9 @@ Override bind address or ports if needed: `./start.sh --host 127.0.0.1 --port 80
 
 **Using the cockpit:** after the UI and API are up, follow
 [`docs/HOW_TO_USE.md`](docs/HOW_TO_USE.md) for the click-by-click workflows (selecting a
-scenario, reading proof, simulating failover, mixed-evidence probes).
+scenario, reading proof, simulating failover, mixed-evidence probes). Optional **Compile DAG**
+sends the header prompt through Gemini; set `GEMINI_API_KEY` in `backend/.env` (see `.env.example`).
+Details: [`docs/llm_usage.md`](docs/llm_usage.md).
 
 **Backend implementation & Cursor handoff:**
 

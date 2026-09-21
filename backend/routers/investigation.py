@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from sse_starlette.sse import EventSourceResponse
 
 from engine.planner import get_investigation, run_probe
-from models import InvestigationResponse, ProbeRequest, ProbeResponse, RunAccepted
+from models import InvestigationResponse, NaturalLanguageRequest, ProbeRequest, ProbeResponse, RunAccepted
 from routers.scenarios import require_scenario
 
 router = APIRouter()
@@ -17,14 +17,19 @@ _RUNS: dict[str, InvestigationResponse] = {}
 _LOCK = Lock()
 
 
-def _run(scenario_id: str, *, force: bool = False) -> InvestigationResponse:
+def _run(scenario_id: str, *, force: bool = False, prompt: str | None = None) -> InvestigationResponse:
     require_scenario(scenario_id)
     run_id = uuid.uuid4().hex[:12]
-    result = get_investigation(scenario_id, run_id=run_id, force=force)
+    result = get_investigation(scenario_id, run_id=run_id, force=force, prompt=prompt)
     with _LOCK:
         _RUNS[result.run_id] = result
         _RUNS[f"latest:{scenario_id}"] = result
     return result
+
+
+@router.post("/api/investigate/nl", response_model=InvestigationResponse)
+def investigate_from_prompt(body: NaturalLanguageRequest) -> InvestigationResponse:
+    return _run(body.scenario_id, force=True, prompt=body.prompt)
 
 
 @router.get("/api/investigate/{scenario_id}", response_model=InvestigationResponse)

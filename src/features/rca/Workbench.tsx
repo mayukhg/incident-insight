@@ -70,8 +70,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { generatePolicyExport, runProbe, simulateRemediation, startInvestigation } from "./investigations.functions";
+import { generatePolicyExport, compileFromPrompt, approveRemediation, runProbe, simulateRemediation, startInvestigation } from "./investigations.functions";
 import { investigationQueryOptions, investigationsQueryOptions } from "./queries";
 import type { EvidenceStatus, Scenario, SimulationView } from "./types";
 
@@ -136,7 +137,7 @@ function StatusDot({ status }: { status: EvidenceStatus }) {
 function InvestigationTree({ scenario, activeNode, onNodeChange }: { scenario: Scenario; activeNode: number; onNodeChange: (index: number) => void }) {
   return (
     <aside className="min-w-0 border-r border-border bg-panel">
-      <PanelTitle eyebrow="Investigation" title="Hypothesis execution path" action={<Badge variant="outline" className="font-mono text-[10px] text-muted-foreground">4 QUERIES</Badge>} />
+      <PanelTitle eyebrow="Investigation" title="Hypothesis execution path" action={<Badge variant="outline" className="font-mono text-[10px] text-muted-foreground">{scenario.nodes.length} QUERIES</Badge>} />
       <div className="px-3 py-4">
         {scenario.nodes.map((node, index) => (
           <div key={node.id} className="relative pb-3 last:pb-0">
@@ -316,7 +317,7 @@ function ImpactMetrics({ scenario }: { scenario: Scenario }) {
   );
 }
 
-function Remediation({ scenario, simulated, onSimulate, simulating, openExport, projectedAuth, recoveredGtv }: { scenario: Scenario; simulated: boolean; onSimulate: (value: boolean) => void; simulating: boolean; openExport: () => void; projectedAuth?: number; recoveredGtv?: string }) {
+function Remediation({ scenario, simulated, onSimulate, simulating, openExport, approved, onApprove, approving, projectedAuth, recoveredGtv }: { scenario: Scenario; simulated: boolean; onSimulate: (value: boolean) => void; simulating: boolean; openExport: () => void; approved: boolean; onApprove: () => void; approving: boolean; projectedAuth?: number; recoveredGtv?: string }) {
   return (
     <section className="p-4">
       <div className="flex items-center justify-between gap-3">
@@ -333,7 +334,8 @@ function Remediation({ scenario, simulated, onSimulate, simulating, openExport, 
         </div>
       </div>
       {simulated && <div className="mt-3 flex items-start gap-2 rounded-md border border-positive/20 bg-positive/8 px-3 py-2.5"><Zap className="mt-0.5 size-3.5 shrink-0 text-positive" /><p className="text-[10px] leading-4 text-positive">Simulation recovers modeled loss with sufficient target-gateway capacity. No production writes.</p></div>}
-      <Button className="mt-3 w-full bg-active text-active-foreground hover:bg-active/90" disabled={!simulated} onClick={openExport}><Braces className="size-4" />Export routing policy</Button>
+      <Button className="mt-3 w-full border-border bg-panel text-foreground hover:bg-surface-raised" variant="outline" disabled={!simulated || approved} onClick={onApprove}>{approved ? "Approved" : approving ? "Approving…" : "Approve evidence hash"}</Button>
+      <Button className="mt-2 w-full bg-active text-active-foreground hover:bg-active/90" disabled={!simulated || !approved} onClick={openExport}><Braces className="size-4" />Export routing policy</Button>
     </section>
   );
 }
@@ -383,6 +385,8 @@ export function Workbench() {
   const [simulated, setSimulated] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [simulation, setSimulation] = useState<SimulationView | null>(null);
+  const [prompt, setPrompt] = useState("Auth rate dropped on Adyen UK debit after the 3DS deploy. Isolate the cohort.");
+  const [approved, setApproved] = useState(false);
   const detailQuery = useQuery({
     ...investigationQueryOptions(scenarioId),
     enabled: Boolean(scenarioId) && listQuery.isSuccess,
@@ -419,6 +423,7 @@ export function Workbench() {
     onMutate: () => {
       setSimulated(false);
       setSimulation(null);
+      setApproved(false);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["investigations", scenarioId] });
@@ -431,6 +436,7 @@ export function Workbench() {
     onSuccess: (result) => {
       setSimulation(result);
       setSimulated(true);
+      setApproved(false);
       toast.success("Failover simulated", { description: "No production routing writes were issued." });
     },
     onError: (error: Error) => {
@@ -446,6 +452,31 @@ export function Workbench() {
     },
     onError: (error: Error) => toast.error("Probe failed", { description: error.message }),
   });
+  const compileMutation = useMutation({
+    mutationFn: () => compileFromPrompt({ data: { investigationId: scenarioId, prompt } }),
+    onMutate: () => {
+      setSimulated(false);
+      setSimulation(null);
+      setApproved(false);
+    },
+    onSuccess: async (result) => {
+      queryClient.setQueryData(["investigations", scenarioId], result);
+      await queryClient.invalidateQueries({ queryKey: ["investigations", scenarioId] });
+      toast.success("Hypothesis DAG compiled", { description: result.plannerSource === "gemini" ? "Gemini filled a schema-validated DAG. SQL and stats stayed deterministic." : "Template DAG used (Gemini unavailable or schema rejected)." });
+    },
+    onError: (error: Error) => toast.error("Compile failed", { description: error.message }),
+  });
+  const approveMutation = useMutation({
+    mutationFn: () => {
+      if (!scenario?.proposalId || !simulation?.evidenceHash) throw new Error("Simulate before approve");
+      return approveRemediation({ data: { investigationId: scenarioId, proposalId: scenario.proposalId, evidenceHash: simulation.evidenceHash } });
+    },
+    onSuccess: () => {
+      setApproved(true);
+      toast.success("Remediation approved", { description: "Evidence hash recorded. Export is now unlocked." });
+    },
+    onError: (error: Error) => toast.error("Approve rejected", { description: error.message }),
+  });
   const exportMutation = useMutation({
     mutationFn: (format: "json" | "terraform") => {
       if (!scenario?.proposalId) throw new Error("No verified proposal");
@@ -459,6 +490,7 @@ export function Workbench() {
     setActiveNodeId(null);
     setSimulated(false);
     setSimulation(null);
+    setApproved(false);
   };
   const rerunning = rerunMutation.isPending || (detailQuery.isFetching && !detailQuery.data);
   const onSimulate = (value: boolean) => {
@@ -524,6 +556,14 @@ export function Workbench() {
           </Badge>
           <Button variant="outline" size="sm" onClick={() => rerunMutation.mutate()} disabled={rerunning} className="ml-auto h-8 border-border bg-panel text-[11px]"><RefreshCw className={cn("size-3.5", rerunning && "animate-spin")} />Re-run investigation</Button>
         </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2">
+          <Input value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe the incident in natural language" className="h-8 min-w-[240px] flex-1 border-border bg-panel text-[11px] shadow-none" />
+          <Button variant="outline" size="sm" className="h-8 border-border bg-panel text-[11px]" disabled={compileMutation.isPending || prompt.trim().length < 8} onClick={() => compileMutation.mutate()}>
+            {compileMutation.isPending ? <LoaderCircle className="size-3.5 animate-spin" /> : null}
+            Compile DAG
+          </Button>
+          <span className="font-mono text-[10px] text-quiet">{scenario.plannerSource ?? "template"}{typeof scenario.replanCount === "number" ? ` · replan ${scenario.replanCount}` : ""}</span>
+        </div>
         <div className="grid grid-cols-2 border-t border-border sm:grid-cols-4 xl:absolute xl:left-[580px] xl:top-0 xl:h-14 xl:w-[calc(100%-780px)] xl:border-l xl:border-t-0">
           {[{ label: "Baseline auth", value: `${scenario.baselineAuth.toFixed(1)}%`, sub: "matched window" }, { label: simulated ? "Simulated auth" : "Incident auth", value: `${displayedAuth.toFixed(1)}%`, sub: simulated ? "failover model" : scenario.window }, { label: simulated ? "Projected lift" : "Variance", value: `${displayedDelta > 0 ? "+" : ""}${displayedDelta.toFixed(1)}%`, sub: simulated ? "vs incident" : "vs baseline" }, { label: simulated ? "GTV recovered" : "GTV at risk", value: simulated ? recoveredDisplay ?? "$0/hr" : scenario.gtvRisk, sub: simulated ? "per hour" : "modeled exposure" }].map((kpi, index) => <div key={kpi.label} className={cn("min-w-0 border-border px-3 py-2", index > 0 && "border-l", index > 1 && "border-t sm:border-t-0")}><p className="text-[8px] font-semibold uppercase text-muted-foreground">{kpi.label}</p><div className="mt-0.5 flex min-w-0 items-baseline gap-1.5"><span className={cn("font-mono text-sm font-semibold", (index === 2 || index === 3) && (simulated ? "text-positive" : "text-negative"))}>{kpi.value}</span><span className="truncate text-[8px] text-quiet">{kpi.sub}</span></div></div>)}
         </div>
@@ -542,14 +582,14 @@ export function Workbench() {
           <aside className="min-w-0 bg-panel">
             <PanelTitle eyebrow="RCA & action" title={scenario.status === "mixed" ? "Evidence review" : "Verdict & remediation"} action={<GitCommitHorizontal className="size-4 text-muted-foreground" />} />
             <Verdict scenario={scenario} /><ImpactMetrics scenario={scenario} />
-            {scenario.status === "mixed" ? <MixedEvidence scenario={scenario} onProbe={handleProbe} /> : <Remediation scenario={scenario} simulated={simulated} onSimulate={onSimulate} simulating={simulateMutation.isPending} openExport={openExport} {...(simulation ? { projectedAuth: simulation.projectedAuth, recoveredGtv: simulation.recoveredGtv } : {})} />}
+            {scenario.status === "mixed" ? <MixedEvidence scenario={scenario} onProbe={handleProbe} /> : <Remediation scenario={scenario} simulated={simulated} onSimulate={onSimulate} simulating={simulateMutation.isPending} openExport={openExport} approved={approved} onApprove={() => approveMutation.mutate()} approving={approveMutation.isPending} {...(simulation ? { projectedAuth: simulation.projectedAuth, recoveredGtv: simulation.recoveredGtv } : {})} />}
           </aside>
         </div>
         <Tabs defaultValue="evidence" className="xl:hidden">
           <TabsList className="sticky top-[122px] z-30 grid h-10 w-full grid-cols-3 rounded-none border-b border-border bg-background p-0"><TabsTrigger value="tree" className="h-10 rounded-none text-[11px]">Investigation</TabsTrigger><TabsTrigger value="evidence" className="h-10 rounded-none text-[11px]">Evidence</TabsTrigger><TabsTrigger value="verdict" className="h-10 rounded-none text-[11px]">Verdict</TabsTrigger></TabsList>
           <TabsContent value="tree" className="m-0"><InvestigationTree scenario={scenario} activeNode={activeNode} onNodeChange={(index) => setActiveNodeId(requiredAt(scenario.nodes, index).id)} /></TabsContent>
           <TabsContent value="evidence" className="m-0 bg-panel"><PanelTitle eyebrow="Proof workbench" title={requiredAt(scenario.nodes, activeNode).title} /><QueryEditor scenario={scenario} activeNode={activeNode} /><VarianceTable scenario={scenario} activeNode={activeNode} /><TelemetryChart scenario={scenario} activeNode={activeNode} /></TabsContent>
-          <TabsContent value="verdict" className="m-0 bg-panel"><PanelTitle eyebrow="RCA & action" title={scenario.status === "mixed" ? "Evidence review" : "Verdict & remediation"} /><Verdict scenario={scenario} /><ImpactMetrics scenario={scenario} />{scenario.status === "mixed" ? <MixedEvidence scenario={scenario} onProbe={handleProbe} /> : <Remediation scenario={scenario} simulated={simulated} onSimulate={onSimulate} simulating={simulateMutation.isPending} openExport={openExport} {...(simulation ? { projectedAuth: simulation.projectedAuth, recoveredGtv: simulation.recoveredGtv } : {})} />}</TabsContent>
+          <TabsContent value="verdict" className="m-0 bg-panel"><PanelTitle eyebrow="RCA & action" title={scenario.status === "mixed" ? "Evidence review" : "Verdict & remediation"} /><Verdict scenario={scenario} /><ImpactMetrics scenario={scenario} />{scenario.status === "mixed" ? <MixedEvidence scenario={scenario} onProbe={handleProbe} /> : <Remediation scenario={scenario} simulated={simulated} onSimulate={onSimulate} simulating={simulateMutation.isPending} openExport={openExport} approved={approved} onApprove={() => approveMutation.mutate()} approving={approveMutation.isPending} {...(simulation ? { projectedAuth: simulation.projectedAuth, recoveredGtv: simulation.recoveredGtv } : {})} />}</TabsContent>
         </Tabs>
       </main>
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} scenario={scenario} simulation={simulation} />

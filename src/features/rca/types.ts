@@ -67,6 +67,8 @@ export type Scenario = {
   markerLabel: string;
   runId: string;
   runStatus: string;
+  plannerSource?: string;
+  replanCount?: number;
 };
 
 export type InvestigationSummary = {

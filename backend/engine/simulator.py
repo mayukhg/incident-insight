@@ -8,17 +8,13 @@ from fastapi import HTTPException
 from engine.planner import compute_kpis, get_investigation
 from engine.query_gate import execute
 from engine.stats import auth_rate
+from engine.taxonomy import CONFIDENCE_GATE
 from models import PolicyExport, RemediationRule, SimulateResponse
 from seed_data import SCENARIOS
 
-CONFIDENCE_GATE = 0.80
+
 _last_simulation: dict[str, SimulateResponse] = {}
-
-
-def _filters(rule: RemediationRule) -> tuple[str, list[object]]:
-    clauses = ["gateway_id = ?", "timestamp >= ?", "timestamp < ?"]
-    params: list[object] = []
-    return clauses, params
+_approved_hashes: set[str] = set()
 
 
 def simulate(scenario_id: str, rule: RemediationRule | None, proposal_id: str | None, *, run_id: str) -> SimulateResponse:
@@ -35,7 +31,7 @@ def simulate(scenario_id: str, rule: RemediationRule | None, proposal_id: str | 
 
     resolved = rule
     if resolved is None:
-        default = spec.default_rule
+        default = investigation.root_cause_analysis.default_rule
         if default is None:
             raise HTTPException(status_code=409, detail="No verified remediation proposal")
         resolved = RemediationRule(
@@ -46,7 +42,11 @@ def simulate(scenario_id: str, rule: RemediationRule | None, proposal_id: str | 
             filter_card_brand=default.filter_card_brand,
         )
         proposal_id = default.proposal_id
-    proposal_id = proposal_id or (spec.default_rule.proposal_id if spec.default_rule else "default")
+    proposal_id = proposal_id or (
+        investigation.root_cause_analysis.default_rule.proposal_id
+        if investigation.root_cause_analysis.default_rule
+        else "default"
+    )
 
     source_where = "gateway_id = ? AND timestamp >= ? AND timestamp < ?"
     source_params: list[object] = [resolved.source_gateway, spec.anomaly_start, spec.anomaly_end]
@@ -121,6 +121,9 @@ def simulate(scenario_id: str, rule: RemediationRule | None, proposal_id: str | 
         "sql": [source.sql, target.sql],
         "steps": [step.executed_sql for step in investigation.steps],
         "confidence": investigation.root_cause_analysis.confidence_score,
+        "windows": [spec.baseline_start, spec.baseline_end, spec.anomaly_start, spec.anomaly_end],
+        "planner_source": investigation.planner_source,
+        "replan_count": investigation.replan_count,
     }
     digest = hashlib.sha256(json.dumps(evidence, sort_keys=True).encode("utf-8")).hexdigest()
     response = SimulateResponse(
@@ -139,13 +142,20 @@ def simulate(scenario_id: str, rule: RemediationRule | None, proposal_id: str | 
     return response
 
 
+def approve_policy(scenario_id: str, proposal_id: str, evidence_hash: str) -> str:
+    key = f"{scenario_id}:{proposal_id}"
+    cached = _last_simulation.get(key)
+    if cached is None or cached.policy_export.evidence_hash != evidence_hash:
+        raise HTTPException(status_code=409, detail="Approve rejected: evidence hash mismatch")
+    _approved_hashes.add(evidence_hash)
+    return evidence_hash
+
+
 def export_policy(scenario_id: str, proposal_id: str) -> SimulateResponse:
     key = f"{scenario_id}:{proposal_id}"
     cached = _last_simulation.get(key)
     if cached is None:
-        spec = SCENARIOS[scenario_id]
-        rule = None
-        if spec.default_rule and spec.default_rule.proposal_id == proposal_id:
-            rule = None
-        cached = simulate(scenario_id, rule, proposal_id, run_id="export")
+        cached = simulate(scenario_id, None, proposal_id, run_id="export")
+    if cached.policy_export.evidence_hash not in _approved_hashes:
+        raise HTTPException(status_code=409, detail="Export rejected: engineer approval required")
     return cached

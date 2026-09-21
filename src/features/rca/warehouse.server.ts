@@ -69,6 +69,22 @@ export async function exportPolicyRequest(scenarioId: string, proposalId: string
   );
 }
 
+export async function compileFromPromptRequest(scenarioId: string, prompt: string): Promise<InvestigationDto> {
+  return investigationSchema.parse(
+    await analyticalFetch("/api/investigate/nl", {
+      method: "POST",
+      body: JSON.stringify({ scenario_id: scenarioId, prompt }),
+    }),
+  );
+}
+
+export async function approveRemediationRequest(scenarioId: string, proposalId: string, evidenceHash: string) {
+  return (await analyticalFetch("/api/remediation/approve", {
+    method: "POST",
+    body: JSON.stringify({ scenario_id: scenarioId, proposal_id: proposalId, evidence_hash: evidenceHash }),
+  })) as { approved: boolean; evidence_hash: string; proposal_id: string };
+}
+
 export async function runProbeRequest(scenarioId: string, probeId: string) {
   return probeResponseSchema.parse(
     await analyticalFetch("/api/probes", {

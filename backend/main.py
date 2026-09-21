@@ -1,12 +1,34 @@
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import init_db
+from engine.gemini_compiler import gemini_enabled
+from engine.taxonomy import GEMINI_MODEL
 from routers import investigation, remediation, scenarios, telemetry
+
+
+def _load_env() -> None:
+    for candidate in (Path(__file__).resolve().parent / ".env", Path(__file__).resolve().parents[1] / ".env"):
+        if not candidate.exists():
+            continue
+        for line in candidate.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            name, value = stripped.split("=", 1)
+            key = name.strip()
+            token = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = token
+
+
+_load_env()
 
 
 @asynccontextmanager
@@ -31,4 +53,8 @@ app.include_router(remediation.router)
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "llm": GEMINI_MODEL if gemini_enabled() else "disabled",
+        "llm_role": "hypothesis_dag_compiler",
+    }

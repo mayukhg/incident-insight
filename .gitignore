@@ -33,6 +33,10 @@ dist-ssr
 
 # Dev server process files written by start.sh / start.ps1
 .incident-insight*.pid
+.env
+.env.*
+!.env.example
+backend/.env
 # DuckDB ledger — keep the compressed seed in git; ignore the unpacked file
 
 # DuckDB ledger — keep the compressed seed in git; ignore the unpacked file

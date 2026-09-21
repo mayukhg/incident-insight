@@ -120,6 +120,8 @@ export function mapInvestigation(detail: InvestigationDto, telemetry: TelemetryD
     markerLabel: marker?.label ?? (mixed ? "Observed shift" : "Deploy #4481"),
     runId: detail.run_id,
     runStatus: detail.run_status,
+    plannerSource: detail.planner_source,
+    replanCount: detail.replan_count,
   };
   if (!mixed && rca.default_rule) {
     scenario.targetRule = rca.default_rule.target_rule;

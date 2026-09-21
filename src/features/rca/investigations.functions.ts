@@ -36,6 +36,26 @@ export const simulateRemediation = createServerFn({ method: "POST" })
     return simulateDto(data.investigationId, data.proposalId);
   });
 
+export const compileFromPrompt = createServerFn({ method: "POST" })
+  .validator(z.object({ investigationId: z.string().min(1), prompt: z.string().min(8).max(2000) }))
+  .handler(async ({ data }) => {
+    const { compileFromPromptDto } = await import("./analysis.server");
+    return compileFromPromptDto(data.investigationId, data.prompt);
+  });
+
+export const approveRemediation = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      investigationId: z.string().min(1),
+      proposalId: z.string().min(1),
+      evidenceHash: z.string().min(8),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { approveDto } = await import("./analysis.server");
+    return approveDto(data.investigationId, data.proposalId, data.evidenceHash);
+  });
+
 export const generatePolicyExport = createServerFn({ method: "POST" })
   .validator(
     z.object({

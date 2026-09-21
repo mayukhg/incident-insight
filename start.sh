@@ -6,6 +6,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+if [[ -f "$SCRIPT_DIR/backend/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/backend/.env"
+  set +a
+fi
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/.env"
+  set +a
+fi
+
 PORT="${PORT:-8080}"
 API_PORT="${API_PORT:-8000}"
 HOST="${HOST:-127.0.0.1}"

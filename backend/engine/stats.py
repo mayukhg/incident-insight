@@ -50,6 +50,15 @@ def is_isolated(slice_delta: float, peer_deltas: list[float], p_value: float | N
     return (slice_delta - median_peer) <= -min_gap_pp
 
 
+def sample_size_penalty(volume: int) -> float:
+    """Small n reduces confidence; it does not, by itself, force MIXED_EVIDENCE."""
+    if volume < 30:
+        return 0.20
+    if volume < 200:
+        return 0.05
+    return 0.0
+
+
 def safe_p(p_value: float | None) -> float:
     if p_value is None:
         return inf

@@ -6,3 +6,4 @@ scipy==1.13.1
 numpy==1.26.4
 sse-starlette==2.2.1
 eval_type_backport==0.2.2
+google-genai==1.14.0

@@ -88,6 +88,8 @@ export const investigationSchema = z.object({
     all_queries_executed: z.boolean(),
     failed: z.boolean().optional(),
   }),
+  planner_source: z.string().optional(),
+  replan_count: z.number().optional(),
 });
 
 export const telemetrySchema = z.object({
