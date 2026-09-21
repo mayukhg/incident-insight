@@ -1,8 +1,8 @@
 # Roadmap
 
-- [ ] Build the payment incident scenario data model
-- [ ] Build the linked three-pane cockpit interface
-- [ ] Add responsive product styling and metadata
-- [ ] Update the project README
-- [ ] Verify interactions and responsive layouts
-- [ ] Explain GitHub repository connection after the cockpit is complete
+- [x] Build the payment incident scenario data model
+- [x] Build the linked three-pane cockpit interface
+- [x] Add responsive product styling and metadata
+- [x] Update the project README
+- [x] Verify interactions and responsive layouts
+- [x] Explain GitHub repository connection after the cockpit is complete
