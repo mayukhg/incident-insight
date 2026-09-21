@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Workbench } from "@/features/rca/Workbench";
+import { investigationsQueryOptions } from "@/features/rca/queries";
 
 export const Route = createFileRoute("/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(investigationsQueryOptions),
   head: () => ({
     meta: [
       { title: "Payment Incident RCA Workbench" },

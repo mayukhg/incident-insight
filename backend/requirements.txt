@@ -1,0 +1,8 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+duckdb==1.2.2
+pydantic==2.11.3
+scipy==1.13.1
+numpy==1.26.4
+sse-starlette==2.2.1
+eval_type_backport==0.2.2
