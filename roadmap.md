@@ -5,3 +5,4 @@
 - [ ] Add responsive product styling and metadata
 - [ ] Update the project README
 - [ ] Verify interactions and responsive layouts
+- [ ] Explain GitHub repository connection after the cockpit is complete
