@@ -1,29 +1,36 @@
-# Welcome to your Lovable project
+# Payment Incident RCA Workbench
 
-This project was built with [Lovable](https://lovable.dev).
+Autonomous, query-driven payments root-cause analysis and remediation cockpit with a strict zero-speculation guarantee: every diagnosis is linked to executed SQL evidence.
 
-## Build with Lovable
+## Product principles
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- Every hypothesis links to SQL, execution latency, rows scanned, and statistical significance.
+- Cohort isolation spans gateway, card scheme, BIN country, decline code, and 3DS protocol.
+- Inconclusive incidents become `MIXED_EVIDENCE` instead of speculative diagnoses.
+- Verified diagnoses can feed routing failover simulation and JSON/Terraform exports.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Cockpit
+
+The interface is organized into three linked panes:
+
+1. **Investigation Tree** — ordered hypothesis execution with runtime and scan metadata.
+2. **Proof Workbench** — active SQL, cohort variance table, and synchronized telemetry.
+3. **RCA & Action** — verdict confidence, quantified exposure, failover simulation, and policy export.
+
+Included scenarios cover an Adyen UK debit 3DS timeout, a Checkout.com Visa latency event, and a broad mixed-evidence decline spike.
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Install dependencies and run the local development server:
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+bun install
+bun run dev
 ```
 
 ## Built with
 
-- TanStack Start
+- TanStack Start and React 19
 - TypeScript
-- React
-- Tailwind CSS
+- Tailwind CSS v4
+- Recharts and Radix UI
