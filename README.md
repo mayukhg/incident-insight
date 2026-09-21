@@ -36,7 +36,10 @@ Issues and feature requests are tracked in [GitHub Issues](https://github.com/ma
 
 ## Backend implementation
 
-The current experience uses deterministic frontend fixtures. See the [backend implementation guide](docs/BACKEND_IMPLEMENTATION.md) for the full frontend contract, data model, server integration points, security boundaries, implementation sequence, and acceptance criteria for continuing the backend work in Cursor.
+The current experience uses deterministic frontend fixtures. Use these two Cursor handoff documents:
+
+- [Frontend architecture and integration guide](docs/FRONTEND_INTEGRATION_GUIDE.md) — current component map, state flow, data contracts, exact fixture replacement points, TanStack integration pattern, and regression checklist.
+- [Backend implementation guide](docs/BACKEND_IMPLEMENTATION.md) — analytical service architecture, DuckDB schema, API payloads, milestones, and implementation checklist.
 
 ## Built with
 
