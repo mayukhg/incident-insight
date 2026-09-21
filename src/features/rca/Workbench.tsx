@@ -84,6 +84,12 @@ const statusStyles: Record<EvidenceStatus, string> = {
   inconclusive: "border-warning/30 bg-warning/10 text-warning",
 };
 
+function requiredAt<T>(items: T[], index: number): T {
+  const item = items[index];
+  if (item === undefined) throw new Error(`Missing item at index ${index}`);
+  return item;
+}
+
 function copyText(text: string, label = "Copied to clipboard") {
   void navigator.clipboard.writeText(text);
   toast.success(label);
@@ -175,7 +181,7 @@ function InvestigationTree({ scenario, activeNode, onNodeChange }: { scenario: S
 }
 
 function QueryEditor({ scenario, activeNode }: { scenario: Scenario; activeNode: number }) {
-  const node = scenario.nodes[activeNode];
+  const node = requiredAt(scenario.nodes, activeNode);
   return (
     <section className="border-b border-border">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-raised px-4 py-2">
@@ -201,7 +207,7 @@ function QueryEditor({ scenario, activeNode }: { scenario: Scenario; activeNode:
 }
 
 function VarianceTable({ scenario, activeNode }: { scenario: Scenario; activeNode: number }) {
-  const rows = scenario.nodes[activeNode].cohorts;
+  const rows = requiredAt(scenario.nodes, activeNode).cohorts;
   return (
     <section className="border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
@@ -247,7 +253,7 @@ function TelemetryChart({ scenario, activeNode }: { scenario: Scenario; activeNo
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h3 className="text-xs font-semibold text-foreground">Auth rate & gateway latency</h3>
-          <p className="mt-0.5 text-[10px] text-muted-foreground">{scenario.nodes[activeNode].chartLabel}</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">{requiredAt(scenario.nodes, activeNode).chartLabel}</p>
         </div>
         <div className="flex items-center gap-3 text-[9px] text-muted-foreground">
           <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-chart-baseline" />Baseline</span>
@@ -367,12 +373,13 @@ function ExportDialog({ open, onOpenChange, scenario }: { open: boolean; onOpenC
 }
 
 export function Workbench() {
-  const [scenarioId, setScenarioId] = useState(scenarios[0].id);
+  const defaultScenario = requiredAt(scenarios, 0);
+  const [scenarioId, setScenarioId] = useState(defaultScenario.id);
   const [activeNode, setActiveNode] = useState(3);
   const [simulated, setSimulated] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const scenario = useMemo(() => scenarios.find((item) => item.id === scenarioId) ?? scenarios[0], [scenarioId]);
+  const scenario = useMemo(() => scenarios.find((item) => item.id === scenarioId) ?? defaultScenario, [scenarioId, defaultScenario]);
   const displayedAuth = simulated && scenario.simulatedAuth ? scenario.simulatedAuth : scenario.incidentAuth;
   const displayedDelta = simulated ? displayedAuth - scenario.incidentAuth : scenario.delta;
 
@@ -408,7 +415,7 @@ export function Workbench() {
         <div className="hidden min-h-[calc(100vh-57px)] grid-cols-[25%_48%_27%] xl:grid">
           <InvestigationTree scenario={scenario} activeNode={activeNode} onNodeChange={setActiveNode} />
           <section className="min-w-0 border-r border-border bg-panel">
-            <PanelTitle eyebrow="Proof workbench" title={scenario.nodes[activeNode].title} action={<div className="hidden items-center gap-1.5 text-[10px] text-muted-foreground 2xl:flex"><Database className="size-3" />synthetic_ledger.duckdb</div>} />
+            <PanelTitle eyebrow="Proof workbench" title={requiredAt(scenario.nodes, activeNode).title} action={<div className="hidden items-center gap-1.5 text-[10px] text-muted-foreground 2xl:flex"><Database className="size-3" />synthetic_ledger.duckdb</div>} />
             <QueryEditor scenario={scenario} activeNode={activeNode} />
             <VarianceTable scenario={scenario} activeNode={activeNode} />
             <TelemetryChart scenario={scenario} activeNode={activeNode} />
@@ -422,7 +429,7 @@ export function Workbench() {
         <Tabs defaultValue="evidence" className="xl:hidden">
           <TabsList className="sticky top-[122px] z-30 grid h-10 w-full grid-cols-3 rounded-none border-b border-border bg-background p-0"><TabsTrigger value="tree" className="h-10 rounded-none text-[11px]">Investigation</TabsTrigger><TabsTrigger value="evidence" className="h-10 rounded-none text-[11px]">Evidence</TabsTrigger><TabsTrigger value="verdict" className="h-10 rounded-none text-[11px]">Verdict</TabsTrigger></TabsList>
           <TabsContent value="tree" className="m-0"><InvestigationTree scenario={scenario} activeNode={activeNode} onNodeChange={setActiveNode} /></TabsContent>
-          <TabsContent value="evidence" className="m-0 bg-panel"><PanelTitle eyebrow="Proof workbench" title={scenario.nodes[activeNode].title} /><QueryEditor scenario={scenario} activeNode={activeNode} /><VarianceTable scenario={scenario} activeNode={activeNode} /><TelemetryChart scenario={scenario} activeNode={activeNode} /></TabsContent>
+          <TabsContent value="evidence" className="m-0 bg-panel"><PanelTitle eyebrow="Proof workbench" title={requiredAt(scenario.nodes, activeNode).title} /><QueryEditor scenario={scenario} activeNode={activeNode} /><VarianceTable scenario={scenario} activeNode={activeNode} /><TelemetryChart scenario={scenario} activeNode={activeNode} /></TabsContent>
           <TabsContent value="verdict" className="m-0 bg-panel"><PanelTitle eyebrow="RCA & action" title={scenario.status === "mixed" ? "Evidence review" : "Verdict & remediation"} /><Verdict scenario={scenario} /><ImpactMetrics scenario={scenario} />{scenario.status === "mixed" ? <MixedEvidence scenario={scenario} onProbe={runProbe} /> : <Remediation scenario={scenario} simulated={simulated} setSimulated={setSimulated} openExport={() => setExportOpen(true)} />}</TabsContent>
         </Tabs>
       </main>
