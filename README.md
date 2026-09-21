@@ -34,6 +34,10 @@ bun run dev
 
 Issues and feature requests are tracked in [GitHub Issues](https://github.com/mayukhg/incident-insight/issues).
 
+## Backend implementation
+
+The current experience uses deterministic frontend fixtures. See the [backend implementation guide](docs/BACKEND_IMPLEMENTATION.md) for the full frontend contract, data model, server integration points, security boundaries, implementation sequence, and acceptance criteria for continuing the backend work in Cursor.
+
 ## Built with
 
 - TanStack Start and React 19
