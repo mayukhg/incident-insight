@@ -173,5 +173,3 @@ bun run build   # verifies production compilation and bundle integrity
 ```
 
 **Issues and feature requests:** tracked via GitHub Issues.
-
-```
