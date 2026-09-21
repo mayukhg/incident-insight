@@ -1,6 +1,15 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "incident-insight",
   "private": true,
+  "description": "Query-driven payment incident root-cause analysis workbench with evidence-backed remediation.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mayukhg/incident-insight.git"
+  },
+  "homepage": "https://github.com/mayukhg/incident-insight#readme",
+  "bugs": {
+    "url": "https://github.com/mayukhg/incident-insight/issues"
+  },
   "sideEffects": false,
   "type": "module",
   "scripts": {

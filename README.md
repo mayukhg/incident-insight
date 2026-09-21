@@ -2,6 +2,8 @@
 
 Autonomous, query-driven payments root-cause analysis and remediation cockpit with a strict zero-speculation guarantee: every diagnosis is linked to executed SQL evidence.
 
+**Repository:** [github.com/mayukhg/incident-insight](https://github.com/mayukhg/incident-insight)
+
 ## Product principles
 
 - Every hypothesis links to SQL, execution latency, rows scanned, and statistical significance.
@@ -21,12 +23,16 @@ Included scenarios cover an Adyen UK debit 3DS timeout, a Checkout.com Visa late
 
 ## Development
 
-Install dependencies and run the local development server:
+Clone the repository, install dependencies, and run the local development server:
 
 ```sh
+git clone https://github.com/mayukhg/incident-insight.git
+cd incident-insight
 bun install
 bun run dev
 ```
+
+Issues and feature requests are tracked in [GitHub Issues](https://github.com/mayukhg/incident-insight/issues).
 
 ## Built with
 
