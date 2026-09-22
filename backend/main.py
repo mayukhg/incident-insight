@@ -8,8 +8,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import init_db
-from engine.gemini_compiler import gemini_enabled
-from engine.taxonomy import GEMINI_MODEL
+from engine.gemini_compiler import jev_enabled
+from engine.taxonomy import JEV_MODEL
 from routers import investigation, remediation, scenarios, telemetry
 
 
@@ -55,6 +55,6 @@ app.include_router(remediation.router)
 def health() -> dict[str, str]:
     return {
         "status": "ok",
-        "llm": GEMINI_MODEL if gemini_enabled() else "disabled",
+        "llm": JEV_MODEL if jev_enabled() else "disabled",
         "llm_role": "hypothesis_dag_compiler",
     }
