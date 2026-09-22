@@ -100,9 +100,17 @@ Three engineering commitments carry the vision into the system design in
 implemented cockpit workflow (scenario selection, hypothesis tree, proof pane, failover
 simulation, mixed-evidence probes, and re-run).
 
-### LLM usage (Gemini as DAG compiler only)
+### LLM Architecture: Jev (System One) Integration
 
-Gemini is **not** the root-cause engine. It is used in one place: translating an operator’s
+We have completely decoupled this engine from traditional, slow text-generating LLMs. The DAG Compiler uses **TypeSafe AI's Jev model** via OpenRouter (`typesafe/jev-latest`).
+
+**Why Jev?** Our system guarantees zero speculation. General LLMs hallucinate text explanations and introduce 2-5 second latencies. Jev functions purely as a System One probabilistic router, outputting typed schema shapes in ~70-200ms.
+
+**What is Jev?** Jev is an ultra-low latency, non-text-generating System One model designed for deterministic schema selection tasks. Unlike traditional language models that produce prose and speculation, Jev strictly returns validated JSON structures conforming to predefined schemas.
+
+**Cost Efficiency:** Input costs drop to $0.042/M tokens with completely free output tokens.
+
+Jev is **not** the root-cause engine. It is used in one place: translating an operator’s
 natural-language incident description into a schema-validated hypothesis DAG. SQL, p-values,
 isolation vs peers, policy JSON, simulation, and export stay deterministic. Ordinary scenario
 A/B/C loads and **Re-run investigation** never call the model.
@@ -110,7 +118,7 @@ A/B/C loads and **Re-run investigation** never call the model.
 | Question | Short answer |
 |---|---|
 | User problem | War-room English (“Adyen UK debit auth dropped after 3DS deploy”) must become an ordered, bounded test plan. |
-| Why an LLM at all | That first mapping is a language job. Everything after it is ledger math. |
+| Why Jev specifically | That first mapping is a language job requiring <200ms deterministic schema routing, not speculative text generation. Everything after it is ledger math. |
 | Where it runs | **Compile DAG** in the workbench header, or `POST /api/investigate/nl`. |
 | Guardrails | Frozen taxonomy, catalog filters, no free SQL, invalid DAG dropped (template fallback), max two MIXED replans, 80% confidence + evidence-hash approve, key in gitignored `backend/.env`. |
 
@@ -119,7 +127,7 @@ Full diagrams, the allowed-vs-forbidden table, and the sequence of compile → v
 **Handoff Documentation & Contracts** (`docs/`):
 - `docs/HOW_TO_USE.md`: Operator walkthrough of the tri-pane workbench — exact clicks, mermaid
   flows, and which pane answers which question.
-- `docs/llm_usage.md`: Why Gemini is in the loop, the single usage scenario, implementation map,
+- `docs/llm_usage.md`: Why Jev is in the loop, the single usage scenario, implementation map,
   and guardrails (with workflow diagrams).
 - `docs/FRONTEND_INTEGRATION_GUIDE.md`: Comprehensive map of UI components, reactive state flows,
   TanStack integration patterns, fixture replacement points, and regression checklists.
@@ -187,7 +195,7 @@ Override bind address or ports if needed: `./start.sh --host 127.0.0.1 --port 80
 **Using the cockpit:** after the UI and API are up, follow
 [`docs/HOW_TO_USE.md`](docs/HOW_TO_USE.md) for the click-by-click workflows (selecting a
 scenario, reading proof, simulating failover, mixed-evidence probes). Optional **Compile DAG**
-sends the header prompt through Gemini; set `GEMINI_API_KEY` in `backend/.env` (see `.env.example`).
+sends the header prompt through Jev (TypeSafe AI's System One model) via OpenRouter; set `OPENROUTER_API_KEY` in `backend/.env` (see `.env.example`).
 Details: [`docs/llm_usage.md`](docs/llm_usage.md).
 
 **Backend implementation & Cursor handoff:**

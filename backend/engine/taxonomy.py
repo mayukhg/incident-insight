@@ -47,7 +47,7 @@ CATALOG = {
 MAX_DAG_NODES = 5
 MAX_REPLANS = 2
 CONFIDENCE_GATE = 0.80
-GEMINI_MODEL = "gemini-3.6-flash"
+JEV_MODEL = "typesafe/jev-latest"
 
 REPLAN_DIMENSIONS = ("card_brand", "bin_country", "card_type", "three_ds_version", "decline_code")
 
